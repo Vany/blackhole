@@ -19,4 +19,4 @@ debug: build
 	docker run --rm -v $(PWD)/$(WASM):/code/code.wasm -p $(PORT):$(PORT) fluencelabs/frun
 
 test:
-	curl 'http://localhost:$(PORT)/apps/0/tx' --data $$'sessionId/1\nHelloWorld'
+	curl 'http://localhost:$(PORT)/apps/0/tx' --data $$'sessionId/1\nHelloWorld' | jq -r .result.data | base64 -D
