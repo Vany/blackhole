@@ -1,0 +1,15 @@
+[package]
+name = "hello-world"
+version = "0.1.0"
+authors = ["root"]
+edition = "2018"
+
+[lib]
+name = "pgp_keyserver"
+path = "src/keyserver.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+fluence = { version = "0.1.5"}
+
+# rocket = {version  = "0.4.1"}
