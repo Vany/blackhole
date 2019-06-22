@@ -4,7 +4,7 @@ PWD = `pwd`
 PORT = 30000
 
 
-$(WASM): src/keyserver.rs
+$(WASM): Cargo.toml src/keyserver.rs
 	cargo +nightly build --lib --target wasm32-unknown-unknown --release
 
 
@@ -16,7 +16,13 @@ clean:
 	cargo clean
 
 debug: build
-	docker run --rm -v $(PWD)/$(WASM):/code/code.wasm -p $(PORT):$(PORT) fluencelabs/frun
+	docker run --rm -v $(PWD)/$(WASM):/code/code.wasm -p $(PORT):$(PORT) fluencelabs/frun:newline
+
+
+
+SERIAL = 0
+TESTPAYLOAD ?= GET / HTTP/1.1\r\nHost: urh.ru\r\n\r\n{"hello":"world"}
+
 
 test:
-	curl 'http://localhost:$(PORT)/apps/0/tx' --data $$'sessionId/1\nHelloWorld' | jq -r .result.data | base64 -D
+	curl 'http://localhost:$(PORT)/apps/1/tx' --data $$'sessionId/$(SERIAL)\n$(TESTPAYLOAD)' | jq -r .result.data | base64 -D
