@@ -45,7 +45,7 @@ fn main() {
     );
 }
 
-// #[invocation_handler(init_fn = init)]
+#[invocation_handler(init_fn = init)]
 pub fn entry_point(raw: String) -> String {
     let mut headers = [httparse::EMPTY_HEADER; 16];
     let mut req = { Request::new(&mut headers) };
