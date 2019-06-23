@@ -115,7 +115,7 @@ fn list_template(posts: &[Post]) -> String {
 fn list(_: Request) -> String {
     let resp = POSTS.with(|posts| template(list_template(&posts.borrow())));
     format!(
-        "200 OK\r\n\
+        "HTTP/1.1 200 OK\r\n\
         Content-Type: text/html\r\n\
         Content-Length: {}\r\n\
         Connection: close\r\n\r\n\
@@ -136,7 +136,7 @@ fn post(_: Request, body: &str) -> String {
             POSTS.with(|posts| posts.borrow_mut().push(post));
             let resp = POSTS.with(|posts| template(list_template(&posts.borrow())));
             format!(
-                "200 OK\r\n
+                "HTTP/1.1 200 OK\r\n
                 Content-Type: text/html\r\n\
                 Content-Length: {}\r\n\
                 Connection: close\r\n\r\n\
@@ -149,7 +149,7 @@ fn post(_: Request, body: &str) -> String {
 }
 
 fn serve_wrong(_: Request) -> String {
-    format!("400 Bad Request \r\n\r\n")
+    format!("HTTP/1.1 400 Bad Request \r\n\r\n")
 }
 
 #[cfg(test)]
