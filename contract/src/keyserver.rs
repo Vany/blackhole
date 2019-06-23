@@ -91,7 +91,7 @@ fn template(content: String) -> String {
 </head>
 <body>
 <div>
-<form action=\"/\" type=\"POST\">
+<form method=\"post\" action=\"/\" type=\"POST\">
 <input type=\"text\" name=\"text\"><br>
 <input type=\"submit\" value=\"Submit\">
 </form>
