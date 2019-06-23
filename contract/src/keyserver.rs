@@ -13,6 +13,18 @@ struct Post {
     text: String,
 }
 
+impl Post {
+    fn from_urlencoded(data: &[u8]) -> Post {
+        let mut post = Post::default();
+        for key_val in urlencoded_parse(data) {
+            if key_val.0 == "text" {
+                post.text = key_val.1.to_string();
+            }
+        }
+        post
+    }
+}
+
 thread_local! {
     static POSTS: RefCell<Vec<Post>> = RefCell::new(Vec::new());
 }
@@ -111,12 +123,7 @@ fn post(_: Request, body: &str) -> String {
     if body.len() == 0 {
         format!("400 Bad Request")
     } else {
-        let mut post = Post::default();
-        for key_val in urlencoded_parse(body.as_bytes()) {
-            if key_val.0 == "text" {
-                post.text = key_val.1.to_string();
-            }
-        }
+        let post = Post::from_urlencoded(body.as_bytes());
         if post.text.len() == 0 {
             format!("400 Bad Request")
         } else {
