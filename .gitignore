@@ -11,3 +11,4 @@ Cargo.lock
 
 contract/target
 contract/.idea
+proxy/.idea
