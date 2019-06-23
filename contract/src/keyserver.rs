@@ -1,4 +1,3 @@
-
 use fluence::sdk::*;
 use std::cell::RefCell;
 
@@ -9,6 +8,7 @@ use httparse::Status;
 use url::Url;
 use url::form_urlencoded::parse as urlencoded_parse;
 
+#[derive(Default)]
 struct Post {
     text: String,
 }
@@ -25,15 +25,21 @@ fn init() {
 
 #[allow(dead_code)]
 fn main() {
-    println!("{}", entry_point("GET /vks/v1/upload HTTP/1.1\r\nHost: urh.ru\r\n\r\n{\"keytext\":\"ZZZ\"}".to_owned()));
+    println!(
+        "{}",
+        entry_point(
+            "GET /vks/v1/upload HTTP/1.1\r\nHost: urh.ru\r\n\r\n{\"keytext\":\"ZZZ\"}".to_owned()
+        )
+    );
 }
 
 // #[invocation_handler(init_fn = init)]
 fn entry_point(raw: String) -> String {
     let mut headers = [httparse::EMPTY_HEADER; 16];
-    let mut req = {  Request::new(&mut headers) };
+    let mut req = { Request::new(&mut headers) };
 
-    let parsed = match req.parse(raw.as_bytes()) { // I know here is better way, but i forgot it
+    let parsed = match req.parse(raw.as_bytes()) {
+        // I know here is better way, but i forgot it
         Err(e) => return format!("HTTP Parse Error : {}", e.to_string()),
         Ok(Status::Partial) => return "Can't process incomplete request".to_owned(),
         Ok(Status::Complete(p)) => p,
@@ -42,7 +48,7 @@ fn entry_point(raw: String) -> String {
     let p = req.path.unwrap();
     let u;
     if p[0..1].eq("/") {
-        u =  Url::parse( &format!("http://localhost{}", p));
+        u = Url::parse(&format!("http://localhost{}", p));
     } else {
         u = Url::parse(p);
     }
@@ -57,14 +63,14 @@ fn entry_point(raw: String) -> String {
         } else {
             serve_wrong(req)
         }
-    }
-    else {
+    } else {
         serve_wrong(req)
     }
 }
 
 fn template(content: String) -> String {
-    format!("
+    format!(
+        "
 <!doctype html>
 <html lang=\"en\">
 <head>
@@ -80,7 +86,9 @@ fn template(content: String) -> String {
 </div>
 {}</body>
 </html>
-", content)
+",
+        content
+    )
 }
 
 fn post_template(post: &Post) -> String {
@@ -92,32 +100,35 @@ fn list_template(posts: &[Post]) -> String {
     format!("<div>{}</div>", list)
 }
 
-fn list(req: Request) -> String {
-    format!("200 OK\r\n\r\n{}", POSTS.with(
-        |posts| template(
-            list_template(
-                &posts.borrow()
+fn list(_: Request) -> String {
+    format!(
+        "200 OK\r\n\r\n{}",
+        POSTS.with(|posts| template(list_template(&posts.borrow())))
+    )
+}
+
+fn post(_: Request, body: &str) -> String {
+    if body.len() == 0 {
+        format!("400 Bad Request")
+    } else {
+        let mut post = Post::default();
+        for key_val in urlencoded_parse(body.as_bytes()) {
+            if key_val.0 == "text" {
+                post.text = key_val.1.to_string();
+            }
+        }
+        if post.text.len() == 0 {
+            format!("400 Bad Request")
+        } else {
+            POSTS.with(|posts| posts.borrow_mut().push(post));
+            format!(
+                "200 OK\r\n\r\n{}",
+                POSTS.with(|posts| template(list_template(&posts.borrow())))
             )
-        )))
-}
-
-fn post(req: Request, body: &str) -> String {
-    if let Some(text_val) = urlencoded_parse(body.as_bytes()).into_iter().find(|param| param.0 == "text") {
-        let post = Post{
-            text: text_val.1.to_string()
-        };
-        POSTS.with(|posts| posts.borrow_mut().push(post));
+        }
     }
-    format!("200 OK\r\n\r\n{}", POSTS.with(
-            |posts| template(
-                list_template(
-                    &posts.borrow()
-                )
-    )))
 }
 
-fn serve_wrong(r: Request) -> String{
-    format!("400 WRONG REQUEST \r\n\r\n")
+fn serve_wrong(_: Request) -> String {
+    format!("400 Bad Request \r\n\r\n")
 }
-
-
