@@ -4,7 +4,7 @@ use fluence::sdk::*;
 use log::info;
 use httparse::Request;
 use httparse::Status;
-
+use url::Url;
 
 #[allow(dead_code)]
 fn init() {
@@ -14,12 +14,12 @@ fn init() {
 
 #[allow(dead_code)]
 fn main() {
-    println!("{}", entry_point("GET / HTTP/1.1\r\nHost: urh.ru\r\n\r\n{\"hello\":\"world\"}".to_owned()));
+    println!("{}", entry_point("GET /vks/v1/upload HTTP/1.1\r\nHost: urh.ru\r\n\r\n{\"keytext\":\"ZZZ\"}".to_owned()));
 }
 
 
 
-#[invocation_handler(init_fn = init)]
+// #[invocation_handler(init_fn = init)]
 fn entry_point(name: String) -> String {
     let mut headers = [httparse::EMPTY_HEADER; 16];
     let mut req = {  Request::new(&mut headers) };
@@ -33,10 +33,25 @@ fn entry_point(name: String) -> String {
 
     let body = String::from(&name[parsed..]);
 
-    match req.path.unwrap() {
-        "/" => serve_root(req, body),
-        _ => serve_wrong(req, body),
+    let p = req.path.unwrap();
+
+    let u;
+    if p[0..1].eq("/") {
+        u =  Url::parse( &format!("http://localhost{}", p));
+    } else {
+        u = Url::parse(p);
     }
+    let u = u.unwrap();
+
+
+    let path = u.path();
+
+
+    println!(">>> {} <<<", u.path());
+
+    if path.eq("/") { serve_root(req, body) }
+    else if path.contains("/vks/v1/upload") { serve_upload(req, body) }
+    else { serve_wrong(req, body) }
 }
 
 
@@ -46,6 +61,19 @@ fn serve_root(r: Request, body: String) -> String{
     format!("200 OK\r\n\r\n{}", body)
 }
 
+
+use serde::{Deserialize, Serialize};
+use serde_json::Result;
+
+#[derive(Serialize, Deserialize)]
+struct Upload {
+    keytext: String
+}
+
+fn serve_upload(r: Request, body: String) -> String{
+    let input : Upload = serde_json::from_str(body.as_str()).unwrap();
+    format!("200 OK\r\n\r\n{}", input.keytext)
+}
 
 
 fn serve_wrong(r: Request, body: String) -> String{
