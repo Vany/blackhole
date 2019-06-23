@@ -46,7 +46,7 @@ fn main() {
 }
 
 // #[invocation_handler(init_fn = init)]
-fn entry_point(raw: String) -> String {
+pub fn entry_point(raw: String) -> String {
     let mut headers = [httparse::EMPTY_HEADER; 16];
     let mut req = { Request::new(&mut headers) };
 
@@ -138,4 +138,23 @@ fn post(_: Request, body: &str) -> String {
 
 fn serve_wrong(_: Request) -> String {
     format!("400 Bad Request \r\n\r\n")
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{ entry_point, POSTS};
+    #[test]
+    fn it_works () {
+        entry_point(
+            "GET / HTTP/1.1\r\nHost: urh.ru\r\n\r\n".to_owned()
+        );
+        POSTS.with(|posts| assert_eq!(posts.borrow().len(), 0));
+        entry_point(
+            "POST / HTTP/1.1\r\nHost: urh.ru\r\n\r\ntext=BlaBlaBla".to_owned()
+        );
+        entry_point(
+            "GET / HTTP/1.1\r\nHost: urh.ru\r\n\r\n".to_owned()
+        );
+        POSTS.with(|posts| assert_eq!(posts.borrow()[0].text, "BlaBlaBla"));
+    }
 }
