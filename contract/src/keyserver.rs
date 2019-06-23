@@ -14,7 +14,7 @@ struct Post {
 }
 
 thread_local! {
-    static POSTS: RefCell<Vec<String>> = RefCell::new(Vec::new());
+    static POSTS: RefCell<Vec<Post>> = RefCell::new(Vec::new());
 }
 
 #[allow(dead_code)]
@@ -90,11 +90,11 @@ fn template(content: String) -> String {
 ", content)
 }
 
-fn post_template(post: &String) -> String {
-    format!("<p>{}</p>", post)
+fn post_template(post: &Post) -> String {
+    format!("<p>{}</p>", post.text)
 }
 
-fn list_template(posts: &[String]) -> String {
+fn list_template(posts: &[Post]) -> String {
     let list: String = posts.into_iter().map(post_template).collect();
     format!("<div>{}</div>", list)
 }
@@ -110,8 +110,10 @@ fn list(req: Request) -> String {
 
 fn post(req: Request, body: &str) -> String {
     if let Some(text_val) = urlencoded_parse(body.as_bytes()).into_iter().find(|param| param.0 == "text") {
-        let text = text_val.1.to_string();
-        POSTS.with(|posts| posts.borrow_mut().push(text));
+        let post = Post{
+            text: text_val.1.to_string()
+        };
+        POSTS.with(|posts| posts.borrow_mut().push(post));
     }
     format!("200 OK\r\n\r\n{}", POSTS.with(
             |posts| template(
