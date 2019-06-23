@@ -1,10 +1,16 @@
+
 use fluence::sdk::*;
+use std::cell::RefCell;
 
 #[allow(unused_imports)]
 use log::info;
 use httparse::Request;
 use httparse::Status;
 use url::Url;
+
+thread_local! {
+    static POSTS: RefCell<Vec<String>> = RefCell::new(Vec::new());
+}
 
 #[allow(dead_code)]
 fn init() {
@@ -16,8 +22,6 @@ fn init() {
 fn main() {
     println!("{}", entry_point("GET /vks/v1/upload HTTP/1.1\r\nHost: urh.ru\r\n\r\n{\"keytext\":\"ZZZ\"}".to_owned()));
 }
-
-
 
 // #[invocation_handler(init_fn = init)]
 fn entry_point(name: String) -> String {
@@ -49,32 +53,60 @@ fn entry_point(name: String) -> String {
 
     println!(">>> {} <<<", u.path());
 
-    if path.eq("/") { serve_root(req, body) }
-    else if path.contains("/vks/v1/upload") { serve_upload(req, body) }
-    else { serve_wrong(req, body) }
+    if path.eq("/") {
+        if req.method == Some("GET") {
+            list(req)
+        } else if req.method == Some("POST") {
+            post(req, body)
+        } else {
+            serve_wrong(req, body)
+        }
+    }
+    else {
+        serve_wrong(req, body)
+    }
 }
 
-
-
-
-fn serve_root(r: Request, body: String) -> String{
-    format!("200 OK\r\n\r\n{}", body)
+fn template(content: String) -> String {
+    format!("
+<!doctype html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\">
+  <title>Guest BOOK!</title>
+</head>
+<body>{}</body>
+</html>
+", content)
 }
 
-
-use serde::{Deserialize, Serialize};
-use serde_json::Result;
-
-#[derive(Serialize, Deserialize)]
-struct Upload {
-    keytext: String
+fn post_template(post: &String) -> String {
+    format!("<p>{}</p>", post)
 }
 
-fn serve_upload(r: Request, body: String) -> String{
-    let input : Upload = serde_json::from_str(body.as_str()).unwrap();
-    format!("200 OK\r\n\r\n{}", input.keytext)
+fn list_template(posts: &[String]) -> String {
+    let list: String = posts.into_iter().map(post_template).collect();
+    format!("<div>{}</div>", list)
 }
 
+fn list(req: Request) -> String {
+    format!("200 OK\r\n\r\n{}", POSTS.with(
+        |posts| template(
+            list_template(
+                &posts.borrow()
+            )
+        )))
+}
+
+fn post(req: Request, body: String) -> String {
+    POSTS.with(|posts| posts.borrow_mut().push(body));
+    format!("200 OK\r\n\r\n{}", POSTS.with(
+        |posts| template(
+            list_template(
+                &posts.borrow()
+            )
+        )))
+}
 
 fn serve_wrong(r: Request, body: String) -> String{
     format!("400 WRONG REQUEST \r\n\r\n{} {} [ {} ]", r.path.unwrap(), r.method.unwrap(), body)
