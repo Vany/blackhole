@@ -113,9 +113,15 @@ fn list_template(posts: &[Post]) -> String {
 }
 
 fn list(_: Request) -> String {
+    let resp = POSTS.with(|posts| template(list_template(&posts.borrow())));
     format!(
-        "200 OK\r\n\r\n{}",
-        POSTS.with(|posts| template(list_template(&posts.borrow())))
+        "200 OK\r\n\
+        Content-Type: text/html\r\n\
+        Content-Length: {}\r\n\
+        Connection: close\r\n\r\n\
+        {}",
+        resp.as_bytes().len(),
+        resp
     )
 }
 
@@ -128,9 +134,15 @@ fn post(_: Request, body: &str) -> String {
             format!("400 Bad Request")
         } else {
             POSTS.with(|posts| posts.borrow_mut().push(post));
+            let resp = POSTS.with(|posts| template(list_template(&posts.borrow())));
             format!(
-                "200 OK\r\n\r\n{}",
-                POSTS.with(|posts| template(list_template(&posts.borrow())))
+                "200 OK\r\n
+                Content-Type: text/html\r\n\
+                Content-Length: {}\r\n\
+                Connection: close\r\n\r\n\
+                {}",
+                resp.as_bytes().len(),
+                resp
             )
         }
     }
