@@ -33,7 +33,6 @@ fn entry_point(raw: String) -> String {
     let mut headers = [httparse::EMPTY_HEADER; 16];
     let mut req = {  Request::new(&mut headers) };
 
-
     let parsed = match req.parse(raw.as_bytes()) { // I know here is better way, but i forgot it
         Err(e) => return format!("HTTP Parse Error : {}", e.to_string()),
         Ok(Status::Partial) => return "Can't process incomplete request".to_owned(),
@@ -41,7 +40,6 @@ fn entry_point(raw: String) -> String {
     };
 
     let p = req.path.unwrap();
-
     let u;
     if p[0..1].eq("/") {
         u =  Url::parse( &format!("http://localhost{}", p));
@@ -49,12 +47,7 @@ fn entry_point(raw: String) -> String {
         u = Url::parse(p);
     }
     let u = u.unwrap();
-
-
     let path = u.path();
-
-
-    println!(">>> {} <<<", u.path());
 
     if path.eq("/") {
         if req.method == Some("GET") {
